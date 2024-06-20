@@ -59,7 +59,7 @@ include_dir = os.path.join(project_dir, "tsfile")
 source_file = os.path.join(project_dir, "tsfile", "tsfile_pywrapper.pyx")
 
 if platform.system() == "Darwin":
-    copy_lib_files("Darwin", libtsfile_shard_dir, libtsfile_dir, "dylib", "1.0")
+    copy_lib_files("Darwin", libtsfile_shard_dir, libtsfile_dir, "dylib")
 elif platform.system() == "Linux":
     copy_lib_files("Linux", libtsfile_shard_dir, libtsfile_dir, "so", "1.0")
 else:
