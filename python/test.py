@@ -17,6 +17,7 @@
 #
 
 import os
+import platform
 import shutil
 
 import unittest as ut
