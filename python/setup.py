@@ -118,4 +118,5 @@ setup(
             os.path.join("tsfile", "tsfile.py"),
         ]
     },
+    include_package_data=True,
 )
