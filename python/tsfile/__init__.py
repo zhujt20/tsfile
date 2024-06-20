@@ -15,12 +15,4 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-import platform
-import os
-
-if platform.system() == "Windows":
-    extra_dll_dir = os.path.dirname(__file__)
-    os.add_dll_directory(extra_dll_dir)
-    print(extra_dll_dir)
-
 from .tsfile import read_tsfile, write_tsfile
