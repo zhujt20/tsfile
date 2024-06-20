@@ -19,7 +19,7 @@ import platform
 import os
 
 if platform.system() == "Windows":
-    extra_dll_dir = os.path.join(os.path.dirname(__file__), ".")
+    extra_dll_dir = os.path.dirname(__file__)
     os.add_dll_directory(extra_dll_dir)
     print(extra_dll_dir)
 
