@@ -19,6 +19,7 @@
 import os
 import platform
 import shutil
+import glob
 
 import unittest as ut
 import numpy as np
@@ -28,6 +29,7 @@ if platform.system() == "Windows":
     extra_dll_dir = os.path.join(os.path.dirname(__file__), "tsfile")
     os.add_dll_directory(extra_dll_dir)
     print(extra_dll_dir)
+    print(glob.glob(folder_path + '/*')）
 
 import tsfile as ts
 
