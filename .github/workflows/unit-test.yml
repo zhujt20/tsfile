@@ -86,10 +86,3 @@ jobs:
         shell: bash
         run: |
           ./mvnw${{ steps.platform_suffix.outputs.platform_suffix }} -P with-cpp,with-python clean verify
-      - name: Upload Artifact
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ runner.os }}
-          path: python
-          retention-days: 1
