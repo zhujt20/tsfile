@@ -46,8 +46,6 @@ def copy_header(source, target):
 
 class BuildExt(build_ext):
     def build_extensions(self):
-        if platform.system() == "Windows":
-            os.add_dll_directory(libtsfile_dir)
         numpy_include = np.get_include()
         for ext in self.extensions:
             ext.include_dirs.append(numpy_include)
@@ -67,6 +65,7 @@ elif platform.system() == "Linux":
     copy_lib_files("Linux", libtsfile_shard_dir, libtsfile_dir, "so", "1.0")
 else:
     copy_lib_files("Windows", libtsfile_shard_dir, libtsfile_dir, "dll")
+    copy_lib_files("Windows", libtsfile_shard_dir, libtsfile_dir, "dll", "a")
 
 
 source_include_dir = os.path.join(project_dir, "..", "cpp", "src", "cwrapper", "TsFile-cwrapper.h")
@@ -118,6 +117,7 @@ setup(
             os.path.join("*tsfile", "*.dylib"),
             os.path.join("*tsfile", "*.pyd"),
             os.path.join("*tsfile", "*.dll"),
+            os.path.join("*tsfile", "*.dll.a"),
             os.path.join("tsfile", "tsfile.py"),
         ]
     },
