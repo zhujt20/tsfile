@@ -23,7 +23,6 @@ import numpy as np
 import platform
 import shutil
 import os
-import glob
 
 
 def copy_lib_files(system, source_dir, target_dir, file_ext, version=None):
@@ -66,7 +65,7 @@ elif platform.system() == "Linux":
     copy_lib_files("Linux", libtsfile_shard_dir, libtsfile_dir, "so", "1.0")
 else:
     copy_lib_files("Windows", libtsfile_shard_dir, libtsfile_dir, "dll")
-    print(glob.glob(libtsfile_shard_dir + '/*'))
+    copy_lib_files("Windows", libtsfile_shard_dir, libtsfile_dir, "dll", "a")
 
 
 source_include_dir = os.path.join(project_dir, "..", "cpp", "src", "cwrapper", "TsFile-cwrapper.h")
