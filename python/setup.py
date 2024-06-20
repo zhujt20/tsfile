@@ -65,7 +65,7 @@ elif platform.system() == "Linux":
     copy_lib_files("Linux", libtsfile_shard_dir, libtsfile_dir, "so", "1.0")
 else:
     copy_lib_files("Windows", libtsfile_shard_dir, libtsfile_dir, "dll")
-    copy_lib_files("Linux", libtsfile_shard_dir, libtsfile_dir, "1.0", "dll")
+    copy_lib_files("Windows", libtsfile_shard_dir, libtsfile_dir, "1.0", "dll")
 
 
 source_include_dir = os.path.join(project_dir, "..", "cpp", "src", "cwrapper", "TsFile-cwrapper.h")
