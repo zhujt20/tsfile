@@ -114,7 +114,7 @@ setup(
         "tsfile": [
             os.path.join("*tsfile", "*.so*"),
             os.path.join("*tsfile", "*.dylib"),
-            os.path.join("*tsfile", "*.pyd"),
+            os.path.join("tsfile", "*.pyd"),
             os.path.join("tsfile", "tsfile.py"),
         ]
     },
