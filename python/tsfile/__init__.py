@@ -17,10 +17,10 @@
 #
 import platform
 import os
-from .tsfile import read_tsfile, write_tsfile
 
 if platform.system() == "Windows":
     extra_dll_dir = os.path.join(os.path.dirname(__file__), ".")
     os.add_dll_directory(extra_dll_dir)
     print(extra_dll_dir)
-  
+
+from .tsfile import read_tsfile, write_tsfile
