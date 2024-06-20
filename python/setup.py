@@ -110,5 +110,5 @@ setup(
     ext_modules=cythonize(ext_modules_tsfile),
     cmdclass={"build_ext": BuildExt},
     include_dirs=[np.get_include()],
-    package_data={"tsfile": ["*tsfile/*.so*", "*tsfile/*.dylib", "tsfile/tsfile.py"]}
+    package_data={"tsfile": ["*tsfile/*.so*", "*tsfile/*.dylib", "*tsfile/*.pyd", "tsfile/tsfile.py"]}
 )
