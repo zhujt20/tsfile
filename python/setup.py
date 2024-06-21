@@ -48,6 +48,7 @@ class BuildExt(build_ext):
     def build_extensions(self):
         if platform.system() == "Windows":
             os.add_dll_directory(libtsfile_dir)
+            os.add_dll_directory(libtsfile_shard_dir)
         numpy_include = np.get_include()
         for ext in self.extensions:
             ext.include_dirs.append(numpy_include)
