@@ -80,7 +80,7 @@ if platform.system() == "Windows":
         Extension(
             "tsfile.tsfile_pywrapper",
             sources=[source_file],
-            libraries=["tsfile_pywrapper"],
+            libraries=["tsfile", "tsfile/tsfile_pywrapper"],
             library_dirs=[libtsfile_dir],
             include_dirs=[include_dir, np.get_include()],
             extra_compile_args=["-std=c++11"],
