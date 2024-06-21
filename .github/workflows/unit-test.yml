@@ -8,6 +8,7 @@ on:
     branches:
       - develop
       - 'rel/*'
+      - python-wper
   pull_request:
     branches:
       - develop
@@ -79,7 +80,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest'}}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12' 
+          python-version: '3.12'
 
       # Run the actual maven build including all unit- and integration-tests.
       - name: Build and test with Maven (All others)

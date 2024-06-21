@@ -17,19 +17,11 @@
 #
 
 import os
-import platform
 import shutil
-import glob
 
 import unittest as ut
 import numpy as np
 import pandas as pd
-
-if platform.system() == "Windows":
-    extra_dll_dir = os.path.join(os.path.dirname(__file__), "tsfile")
-    os.add_dll_directory(extra_dll_dir)
-    print(extra_dll_dir)
-    print(glob.glob(extra_dll_dir + '/*'))
 
 import tsfile as ts
 
@@ -57,7 +49,7 @@ def test_write_tsfile():
     df = pd.DataFrame({"Time": time, "level": level, "num": num})
     with ut.TestCase().assertRaises(TypeError):
         ts.write_tsfile(DATA_PATH + "/wrong_time_type.tsfile", TABLE_NAME, df)\
-        
+
     # TXT is not support yet
     time = np.arange(1, 1001, dtype=np.int64)
     text = np.random.choice(["a", "b", "c"], 1000)
@@ -86,7 +78,7 @@ def test_read_tsfile():
 
     with ut.TestCase().assertRaises(ValueError):
         ts.read_tsfile(DATA_PATH + "/empty.tsfile", TABLE_NAME, ["level", "num"])
-    
+
     FILE_NAME= DATA_PATH + "/full_datatypes.tsfile"
     # test read data
     ## 1. read all data

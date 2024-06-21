@@ -91,13 +91,6 @@
                             </arguments>
                         </configuration>
                     </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.6.0</version>
-                <executions>
                     <execution>
                         <id>compile-python-code</id>
                         <phase>compile</phase>
@@ -110,7 +103,7 @@
                                 <argument>setup.py</argument>
                                 <argument>build_ext</argument>
                                 <argument>--inplace</argument>
-                                <argument>${python.compiler.argument}</argument>
+<!--                                <argument>${python.compiler.argument}</argument>-->
                             </arguments>
                         </configuration>
                     </execution>

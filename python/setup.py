@@ -30,7 +30,7 @@ def copy_lib_files(system, source_dir, target_dir, file_ext, version=None):
         lib_file_name = f"libtsfile.{file_ext}.{version}"
     else:
         lib_file_name = f"libtsfile.{file_ext}"
-    
+
     source = os.path.join(source_dir, lib_file_name)
     target = os.path.join(target_dir, lib_file_name)
     shutil.copyfile(source, target)
@@ -82,7 +82,6 @@ if platform.system() == "Windows":
             libraries=["tsfile"],
             library_dirs=[libtsfile_dir],
             include_dirs=[include_dir, np.get_include()],
-            extra_compile_args=["-std=c++11"],
             language="c++"
         )
     ]
