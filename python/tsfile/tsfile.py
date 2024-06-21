@@ -17,7 +17,7 @@
 #
 import os
 
-from .tsfile_pywrapper import tsfile_reader, tsfile_writer
+from tsfile_pywrapper import tsfile_reader, tsfile_writer
 from typing import overload
 from pandas import DataFrame
 
