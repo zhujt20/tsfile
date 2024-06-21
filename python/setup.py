@@ -46,9 +46,10 @@ def copy_header(source, target):
 
 class BuildExt(build_ext):
     def build_extensions(self):
+        numpy_include = np.get_include()
         if platform.system() == "Windows":
             os.add_dll_directory(libtsfile_dir)
-        numpy_include = np.get_include()
+            os.add_dll_directory(numpy_include)
         for ext in self.extensions:
             ext.include_dirs.append(numpy_include)
         super().build_extensions()
@@ -80,7 +81,7 @@ if platform.system() == "Windows":
         Extension(
             "tsfile.tsfile_pywrapper",
             sources=[source_file],
-            libraries=["tsfile", "tsfile/tsfile_pywrapper"],
+            libraries=["tsfile"],
             library_dirs=[libtsfile_dir],
             include_dirs=[include_dir, np.get_include()],
             extra_compile_args=["-std=c++11"],
