@@ -80,14 +80,13 @@ if platform.system() == "Windows":
         Extension(
             "tsfile.tsfile_pywrapper",
             sources=[source_file],
-            libraries=["tsfile"],
+            libraries=["tsfile_pywrapper"],
             library_dirs=[libtsfile_dir],
             include_dirs=[include_dir, np.get_include()],
             extra_compile_args=["-std=c++11"],
             language="c++"
         )
     ]
-    os.add_dll_directory(libtsfile_dir)
 else:
     ext_modules_tsfile = [
         Extension(
