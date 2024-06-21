@@ -88,6 +88,8 @@ if platform.system() == "Windows":
             language="c++"
         )
     ]
+    os.add_dll_directory(libtsfile_dir)
+    os.add_dll_directory(np.get_include())
 else:
     ext_modules_tsfile = [
         Extension(
