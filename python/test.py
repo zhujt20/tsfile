@@ -18,11 +18,12 @@
 
 import os
 import shutil
-
+import platform
 import unittest as ut
 import numpy as np
 import pandas as pd
-
+if platform.system() == "Windows":
+  os.add_dll_directory(os.path.join(os.path.dirname(__file__), "rsfile"))
 import tsfile as ts
 
 TABLE_NAME = "test_table"
