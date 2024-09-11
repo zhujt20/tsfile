@@ -147,11 +147,12 @@ public interface IEncryptor {
 
     @Override
     public byte[] encrypt(byte[] data, int offset, int size) {
-      try {
-        return AES.doFinal(data, offset, size);
-      } catch (IllegalBlockSizeException | BadPaddingException e) {
-        throw new EncryptException("AES128Encryptor encrypt failed ", e);
-      }
+      return encrypt(Arrays.copyOfRange(data, offset, offset + size));
+      //      try {
+      //        return AES.doFinal(data, offset, size);
+      //      } catch (IllegalBlockSizeException | BadPaddingException e) {
+      //        throw new EncryptException("AES128Encryptor encrypt failed ", e);
+      //      }
     }
 
     @Override

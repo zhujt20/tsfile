@@ -84,6 +84,11 @@ public class EncryptUtils {
       md.update("IoTDB is the best".getBytes());
       md.update(TSFileDescriptor.getInstance().getConfig().getEncryptKey().getBytes());
       byte[] data_key = md.digest();
+      data_key =
+          IEncryptor.getEncryptor(
+                  TSFileDescriptor.getInstance().getConfig().getEncryptType(),
+                  TSFileDescriptor.getInstance().getConfig().getEncryptKey().getBytes())
+              .encrypt(data_key);
       StringBuilder valueStr = new StringBuilder();
 
       for (byte b : data_key) {

@@ -132,7 +132,17 @@ public class TsFileIOWriter implements AutoCloseable {
   protected String encryptKey = null;
 
   /** empty construct function. */
-  protected TsFileIOWriter() {}
+  protected TsFileIOWriter() {
+    if (TS_FILE_CONFIG.getEncryptFlag()) {
+      this.encryptLevel = "2";
+      this.encryptType = TS_FILE_CONFIG.getEncryptType().getExtension();
+      this.encryptKey = EncryptUtils.normalKeyStr;
+    } else {
+      this.encryptLevel = "0";
+      this.encryptType = "UNENCRYPTED";
+      this.encryptKey = null;
+    }
+  }
 
   /**
    * for writing a new tsfile.

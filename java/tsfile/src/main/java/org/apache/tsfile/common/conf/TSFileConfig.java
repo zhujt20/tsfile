@@ -255,10 +255,11 @@ public class TSFileConfig implements Serializable {
       return;
     }
     if (encryptKeyPath == null) {
-      throw new RuntimeException("encrypt key path is null");
+      System.out.println("encrypt key path is null, use default encrypt key");
+      return;
     }
     if (encryptKeyPath.isEmpty()) {
-      throw new RuntimeException("encrypt key path is empty");
+      System.out.println("encrypt key path is empty, use default encrypt key");
     }
     this.encryptKey = EncryptUtils.getEncryptKeyFromPath(encryptKeyPath);
   }
