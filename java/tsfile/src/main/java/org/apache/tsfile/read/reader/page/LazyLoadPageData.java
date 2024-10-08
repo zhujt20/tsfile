@@ -57,13 +57,10 @@ public class LazyLoadPageData {
   public ByteBuffer uncompressPageData(PageHeader pageHeader) throws IOException {
     int compressedPageBodyLength = pageHeader.getCompressedSize();
     byte[] uncompressedPageData = new byte[pageHeader.getUncompressedSize()];
+    byte[] decryptedPageData =
+        decryptor.decrypt(chunkData, pageDataOffset, compressedPageBodyLength);
+    System.out.println("decrypt type in uncompressPageData: " + decryptor.getEncryptionType());
     try {
-      byte[] decryptedPageData =
-          decryptor.decrypt(chunkData, pageDataOffset, compressedPageBodyLength);
-      System.out.println("decrypt type in uncompressPageData: " + decryptor.getEncryptionType());
-      if (decryptor.equals(EncryptUtils.decryptor)) {
-        System.out.println("decryptor is EncryptUtils.decryptor");
-      }
       unCompressor.uncompress(
           decryptedPageData, 0, compressedPageBodyLength, uncompressedPageData, 0);
     } catch (Exception e) {

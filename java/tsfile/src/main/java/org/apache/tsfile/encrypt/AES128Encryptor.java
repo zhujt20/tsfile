@@ -32,17 +32,22 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 public class AES128Encryptor implements IEncryptor {
   private final Cipher AES;
+
+  private final SecretKeySpec secretKeySpec;
+
+  private final IvParameterSpec ivParameterSpec;
 
   AES128Encryptor(byte[] key) {
     if (key.length != 16) {
       throw new EncryptKeyLengthNotMatchException(16, key.length);
     }
-    SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
+    secretKeySpec = new SecretKeySpec(key, "AES");
     // Create IV parameter
-    IvParameterSpec ivParameterSpec = new IvParameterSpec(key);
+    ivParameterSpec = new IvParameterSpec(key);
     try {
       // Create Cipher instance and initialize it for encryption in CTR mode without padding
       this.AES = Cipher.getInstance("AES/CTR/NoPadding");
@@ -58,20 +63,29 @@ public class AES128Encryptor implements IEncryptor {
   @Override
   public byte[] encrypt(byte[] data) {
     try {
-      return AES.doFinal(data);
-    } catch (IllegalBlockSizeException | BadPaddingException e) {
+      System.out.println("AES128Encryptor encrypt length: " + data.length);
+      byte[] result = AES.doFinal(data);
+      AES.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
+      return result;
+      //      return AES.doFinal(data);
+    } catch (IllegalBlockSizeException
+        | BadPaddingException
+        | InvalidKeyException
+        | InvalidAlgorithmParameterException e) {
       throw new EncryptException("AES128Encryptor encrypt failed ", e);
     }
   }
 
   @Override
   public byte[] encrypt(byte[] data, int offset, int size) {
-    try {
-      System.out.println("data.length: " + data.length + ", offset: " + offset + ", size: " + size);
-      return AES.doFinal(data, offset, size);
-    } catch (IllegalBlockSizeException | BadPaddingException e) {
-      throw new EncryptException("AES128Encryptor encrypt failed ", e);
-    }
+    System.out.println(
+        "encrypt data.length: " + data.length + ", offset: " + offset + ", size: " + size);
+    return encrypt(Arrays.copyOfRange(data, offset, offset + size));
+    //    try {
+    //      return AES.doFinal(data, offset, size);
+    //    } catch (IllegalBlockSizeException | BadPaddingException e) {
+    //      throw new EncryptException("AES128Encryptor encrypt failed ", e);
+    //    }
   }
 
   @Override

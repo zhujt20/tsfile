@@ -138,7 +138,7 @@ public class TSFileConfig implements Serializable {
   private CompressionType compressor = CompressionType.LZ4;
 
   /** encryptFlag, true means opening the encrypt function. */
-  private boolean encryptFlag = false;
+  private boolean encryptFlag = true;
 
   /** encryptKey, this should be 16 bytes String. */
   private String encryptKey = "abcdefghijklmnop";
@@ -147,7 +147,7 @@ public class TSFileConfig implements Serializable {
    * default encryptType is "org.apache.tsfile.encrypt.UNENCRYPTED", TsFile supports UNENCRYPTED or
    * AES128.
    */
-  private String encryptType = "org.apache.tsfile.encrypt.UNENCRYPTED";
+  private String encryptType = "org.apache.tsfile.encrypt.AES128";
 
   /** Line count threshold for checking page memory occupied size. */
   private int pageCheckSizeThreshold = 100;
