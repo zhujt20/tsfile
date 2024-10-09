@@ -371,7 +371,7 @@ public class TsFileSequenceReader implements AutoCloseable {
       readFileMetadata();
     } catch (Exception e) {
       logger.error("Something error happened while reading file metadata of file {}", file, e);
-      return EncryptUtils.decryptor;
+      return EncryptUtils.getDefaultDecryptor();
     }
     return tsFileMetaData.getIDecryptor();
   }
