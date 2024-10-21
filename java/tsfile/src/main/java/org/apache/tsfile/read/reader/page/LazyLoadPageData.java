@@ -41,8 +41,7 @@ public class LazyLoadPageData {
     this.chunkData = data;
     this.pageDataOffset = offset;
     this.unCompressor = unCompressor;
-    this.decryptor = EncryptUtils.decryptor;
-    System.out.println("LazyLoadPageData decryptor default");
+    this.decryptor = EncryptUtils.encrypt.getDecryptor();
   }
 
   public LazyLoadPageData(
@@ -51,7 +50,6 @@ public class LazyLoadPageData {
     this.pageDataOffset = offset;
     this.unCompressor = unCompressor;
     this.decryptor = decryptor;
-    System.out.println("LazyLoadPageData decryptor inherited");
   }
 
   public ByteBuffer uncompressPageData(PageHeader pageHeader) throws IOException {
@@ -59,7 +57,6 @@ public class LazyLoadPageData {
     byte[] uncompressedPageData = new byte[pageHeader.getUncompressedSize()];
     byte[] decryptedPageData =
         decryptor.decrypt(chunkData, pageDataOffset, compressedPageBodyLength);
-    System.out.println("decrypt type in uncompressPageData: " + decryptor.getEncryptionType());
     try {
       unCompressor.uncompress(
           decryptedPageData, 0, compressedPageBodyLength, uncompressedPageData, 0);

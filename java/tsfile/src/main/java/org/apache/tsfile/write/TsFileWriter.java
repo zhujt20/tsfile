@@ -205,7 +205,6 @@ public class TsFileWriter implements AutoCloseable {
       encryptKey = null;
       dataEncryptKey = null;
     }
-    System.out.println("In TsFileWriter encryptType is: " + encryptType);
     this.encryptor = IEncryptor.getEncryptor(encryptType, dataEncryptKey);
     if (encryptKey != null) {
       StringBuilder valueStr = new StringBuilder();
@@ -475,7 +474,6 @@ public class TsFileWriter implements AutoCloseable {
     IChunkGroupWriter groupWriter = groupWriters.get(deviceId);
     if (groupWriter == null) {
       if (isAligned) {
-        System.out.println("init chunkGroupWriter use inherited encryptor");
         groupWriter = new AlignedChunkGroupWriterImpl(deviceId, encryptor);
         if (!isUnseq) { // Sequence File
           ((AlignedChunkGroupWriterImpl) groupWriter)

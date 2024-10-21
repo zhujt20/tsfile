@@ -32,7 +32,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 
 public class AES128Decryptor implements IDecryptor {
   private final Cipher AES;
@@ -63,29 +62,20 @@ public class AES128Decryptor implements IDecryptor {
   @Override
   public byte[] decrypt(byte[] data) {
     try {
-      System.out.println("AES128Decryptor decrypt length: " + data.length);
-      byte[] result = AES.doFinal(data);
-      AES.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
-      return result;
-      //      return AES.doFinal(data);
-    } catch (InvalidAlgorithmParameterException
-        | InvalidKeyException
-        | IllegalBlockSizeException
-        | BadPaddingException e) {
+      return AES.doFinal(data);
+    } catch (IllegalBlockSizeException | BadPaddingException e) {
       throw new EncryptException("AES128Decryptor decrypt failed ", e);
     }
   }
 
   @Override
   public byte[] decrypt(byte[] data, int offset, int size) {
-    System.out.println(
-        "decrypt data.length: " + data.length + ", offset: " + offset + ", size: " + size);
-    return decrypt(Arrays.copyOfRange(data, offset, offset + size));
-    //    try {
-    //      return AES.doFinal(data, offset, size);
-    //    } catch (IllegalBlockSizeException | BadPaddingException e) {
-    //      throw new EncryptException("AES128Decryptor decrypt failed ", e);
-    //    }
+    //    return decrypt(Arrays.copyOfRange(data, offset, offset + size));
+    try {
+      return AES.doFinal(data, offset, size);
+    } catch (IllegalBlockSizeException | BadPaddingException e) {
+      throw new EncryptException("AES128Decryptor decrypt failed ", e);
+    }
   }
 
   @Override

@@ -142,7 +142,6 @@ public class TsFileIOWriter implements AutoCloseable {
       this.encryptType = "org.apache.tsfile.encrypt.UNENCRYPTED";
       this.encryptKey = null;
     }
-    System.out.println("In TsFileIOWriter set3 encryptType is: " + encryptType);
   }
 
   /**
@@ -171,7 +170,6 @@ public class TsFileIOWriter implements AutoCloseable {
       this.encryptType = "org.apache.tsfile.encrypt.UNENCRYPTED";
       this.encryptKey = null;
     }
-    System.out.println("In TsFileIOWriter set1 encryptType is: " + encryptType);
     startFile();
   }
 
@@ -191,7 +189,6 @@ public class TsFileIOWriter implements AutoCloseable {
       this.encryptType = "org.apache.tsfile.encrypt.UNENCRYPTED";
       this.encryptKey = null;
     }
-    System.out.println("In TsFileIOWriter set2 encryptType is: " + encryptType);
     startFile();
   }
 
@@ -211,7 +208,6 @@ public class TsFileIOWriter implements AutoCloseable {
     this.encryptLevel = encryptLevel;
     this.encryptType = encryptType;
     this.encryptKey = encryptKey;
-    System.out.println("In TsFileIOWriter set encryptType is: " + encryptType);
   }
 
   /**

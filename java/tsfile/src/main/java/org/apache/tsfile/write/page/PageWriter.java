@@ -80,8 +80,7 @@ public class PageWriter {
     this.valueOut = new PublicBAOS();
     this.timeEncoder = timeEncoder;
     this.valueEncoder = valueEncoder;
-    this.encryptor = EncryptUtils.encryptor;
-    System.out.println("use default encryptor");
+    this.encryptor = EncryptUtils.encrypt.getEncryptor();
   }
 
   public PageWriter(IEncryptor encryptor) {
@@ -100,10 +99,6 @@ public class PageWriter {
     this.timeEncoder = timeEncoder;
     this.valueEncoder = valueEncoder;
     this.encryptor = encryptor;
-    System.out.println("use inherited encryptor");
-    if (encryptor.equals(EncryptUtils.encryptor)) {
-      System.out.println("encryptor is EncryptUtils.encryptor");
-    }
   }
 
   /** write a time value pair into encoder */
@@ -290,12 +285,6 @@ public class PageWriter {
         pageBuffer.write(compressedBytes, 0, compressedSize);
       } else {
         byte[] encryptedBytes = null;
-        System.out.println(
-            "compressedBytes.length: "
-                + compressedBytes.length
-                + "compressedSize: "
-                + compressedSize);
-        System.out.println("encryptType: " + encryptor.getEncryptionType());
         encryptedBytes = encryptor.encrypt(compressedBytes, 0, compressedSize);
         // data is never a directByteBuffer now, so we can use data.array()
         int encryptedSize = encryptedBytes.length;

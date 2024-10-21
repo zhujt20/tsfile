@@ -18,6 +18,7 @@
  */
 package org.apache.tsfile.encrypt;
 
+import org.apache.tsfile.common.conf.TSFileConfig;
 import org.apache.tsfile.common.conf.TSFileDescriptor;
 import org.apache.tsfile.exception.encrypt.EncryptException;
 
@@ -101,13 +102,11 @@ public class EncryptUtils {
       md.update("IoTDB is the best".getBytes());
       md.update(TSFileDescriptor.getInstance().getConfig().getEncryptKey().getBytes());
       byte[] data_key = md.digest();
-      System.out.println("data_key: " + byteArrayToHexString(data_key));
       data_key =
           IEncryptor.getEncryptor(
                   TSFileDescriptor.getInstance().getConfig().getEncryptType(),
                   TSFileDescriptor.getInstance().getConfig().getEncryptKey().getBytes())
               .encrypt(data_key);
-      System.out.println("encrypted_data_key: " + byteArrayToHexString(data_key));
 
       StringBuilder valueStr = new StringBuilder();
 
@@ -124,6 +123,31 @@ public class EncryptUtils {
     }
   }
 
+  public static String getNormalKeyStr(TSFileConfig conf) {
+    try {
+      MessageDigest md = MessageDigest.getInstance("MD5");
+      md.update("IoTDB is the best".getBytes());
+      md.update(conf.getEncryptKey().getBytes());
+      byte[] data_key = md.digest();
+      data_key =
+          IEncryptor.getEncryptor(conf.getEncryptType(), conf.getEncryptKey().getBytes())
+              .encrypt(data_key);
+
+      StringBuilder valueStr = new StringBuilder();
+
+      for (byte b : data_key) {
+        valueStr.append(b).append(",");
+      }
+
+      valueStr.deleteCharAt(valueStr.length() - 1);
+      String str = valueStr.toString();
+
+      return str;
+    } catch (Exception e) {
+      throw new EncryptException("md5 function not found while using md5 to generate data key", e);
+    }
+  }
+
   public static IEncrypt getEncrypt() {
     String encryptType;
     byte[] dataEncryptKey;
@@ -134,16 +158,45 @@ public class EncryptUtils {
         md.update("IoTDB is the best".getBytes());
         md.update(TSFileDescriptor.getInstance().getConfig().getEncryptKey().getBytes());
         dataEncryptKey = md.digest();
-      } catch (Exception e1) {
-        throw new EncryptException("md5 function not found while using md5 to generate data key");
+      } catch (Exception e) {
+        throw new EncryptException(
+            "md5 function not found while using md5 to generate data key", e);
       }
     } else {
       encryptType = "org.apache.tsfile.encrypt.UNENCRYPTED";
       dataEncryptKey = null;
     }
-    System.out.println("encryptType: " + encryptType);
-    if (dataEncryptKey != null) {
-      System.out.println("dataEncryptKey.length: " + dataEncryptKey.length);
+    try {
+      Class<?> encryptTypeClass = Class.forName(encryptType);
+      java.lang.reflect.Constructor<?> constructor =
+          encryptTypeClass.getDeclaredConstructor(byte[].class);
+      return ((IEncrypt) constructor.newInstance(dataEncryptKey));
+    } catch (ClassNotFoundException e) {
+      throw new EncryptException("Get encryptor class failed: " + encryptType, e);
+    } catch (NoSuchMethodException e) {
+      throw new EncryptException("Get constructor for encryptor failed: " + encryptType, e);
+    } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
+      throw new EncryptException("New encryptor instance failed: " + encryptType, e);
+    }
+  }
+
+  public static IEncrypt getEncrypt(TSFileConfig conf) {
+    String encryptType;
+    byte[] dataEncryptKey;
+    if (conf.getEncryptFlag()) {
+      encryptType = conf.getEncryptType();
+      try {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        md.update("IoTDB is the best".getBytes());
+        md.update(conf.getEncryptKey().getBytes());
+        dataEncryptKey = md.digest();
+      } catch (Exception e) {
+        throw new EncryptException(
+            "md5 function not found while using md5 to generate data key", e);
+      }
+    } else {
+      encryptType = "org.apache.tsfile.encrypt.UNENCRYPTED";
+      dataEncryptKey = null;
     }
     try {
       Class<?> encryptTypeClass = Class.forName(encryptType);

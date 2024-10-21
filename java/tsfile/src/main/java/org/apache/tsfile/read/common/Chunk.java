@@ -60,8 +60,7 @@ public class Chunk {
     this.chunkData = buffer;
     this.deleteIntervalList = deleteIntervalList;
     this.chunkStatistic = chunkStatistic;
-    this.decryptor = EncryptUtils.decryptor;
-    System.out.println("Chunk decryptor default");
+    this.decryptor = EncryptUtils.encrypt.getDecryptor();
   }
 
   public Chunk(
@@ -75,21 +74,18 @@ public class Chunk {
     this.deleteIntervalList = deleteIntervalList;
     this.chunkStatistic = chunkStatistic;
     this.decryptor = decryptor;
-    System.out.println("Chunk decryptor inherited");
   }
 
   public Chunk(ChunkHeader header, ByteBuffer buffer) {
     this.chunkHeader = header;
     this.chunkData = buffer;
-    this.decryptor = EncryptUtils.decryptor;
-    System.out.println("Chunk decryptor default");
+    this.decryptor = EncryptUtils.encrypt.getDecryptor();
   }
 
   public Chunk(ChunkHeader header, ByteBuffer buffer, IDecryptor decryptor) {
     this.chunkHeader = header;
     this.chunkData = buffer;
     this.decryptor = decryptor;
-    System.out.println("Chunk decryptor inherited");
   }
 
   public IDecryptor getDecryptor() {

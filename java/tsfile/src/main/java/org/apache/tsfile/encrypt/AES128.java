@@ -20,22 +20,19 @@ package org.apache.tsfile.encrypt;
 
 public class AES128 implements IEncrypt {
 
-  private final IEncryptor encryptor;
-
-  private final IDecryptor decryptor;
+  private final byte[] key;
 
   public AES128(byte[] key) {
-    encryptor = new AES128Encryptor(key);
-    decryptor = new AES128Decryptor(key);
+    this.key = key;
   }
 
   @Override
   public IEncryptor getEncryptor() {
-    return encryptor;
+    return new AES128Encryptor(key);
   }
 
   @Override
   public IDecryptor getDecryptor() {
-    return decryptor;
+    return new AES128Decryptor(key);
   }
 }
