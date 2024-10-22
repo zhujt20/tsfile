@@ -63,7 +63,6 @@ public class AES128Encryptor implements IEncryptor {
   public byte[] encrypt(byte[] data) {
     try {
       return AES.doFinal(data);
-      //      return AES.doFinal(data);
     } catch (IllegalBlockSizeException | BadPaddingException e) {
       throw new EncryptException("AES128Encryptor encrypt failed ", e);
     }
@@ -71,7 +70,6 @@ public class AES128Encryptor implements IEncryptor {
 
   @Override
   public byte[] encrypt(byte[] data, int offset, int size) {
-    //    return encrypt(Arrays.copyOfRange(data, offset, offset + size));
     try {
       return AES.doFinal(data, offset, size);
     } catch (IllegalBlockSizeException | BadPaddingException e) {

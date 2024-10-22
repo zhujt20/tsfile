@@ -18,7 +18,12 @@
  */
 package org.apache.tsfile.encrypt;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 public interface IEncrypt {
+
+  static ConcurrentHashMap<String, java.lang.reflect.Constructor<?>> encryptMap =
+      new ConcurrentHashMap<>();
 
   IDecryptor getDecryptor();
 

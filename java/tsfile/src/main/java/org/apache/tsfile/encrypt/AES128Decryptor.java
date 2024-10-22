@@ -70,7 +70,6 @@ public class AES128Decryptor implements IDecryptor {
 
   @Override
   public byte[] decrypt(byte[] data, int offset, int size) {
-    //    return decrypt(Arrays.copyOfRange(data, offset, offset + size));
     try {
       return AES.doFinal(data, offset, size);
     } catch (IllegalBlockSizeException | BadPaddingException e) {

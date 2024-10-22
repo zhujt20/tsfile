@@ -34,9 +34,13 @@ public interface IDecryptor {
 
   static IDecryptor getDecryptor(String type, byte[] key) {
     try {
+      if (IEncrypt.encryptMap.containsKey(type)) {
+        return ((IEncrypt) IEncrypt.encryptMap.get(type).newInstance(key)).getDecryptor();
+      }
       Class<?> encryptClass = Class.forName(type);
       java.lang.reflect.Constructor<?> constructor =
           encryptClass.getDeclaredConstructor(byte[].class);
+      IEncrypt.encryptMap.put(type, constructor);
       return ((IEncrypt) constructor.newInstance(key)).getDecryptor();
     } catch (ClassNotFoundException e) {
       throw new EncryptException("Get decryptor class failed: " + type, e);
