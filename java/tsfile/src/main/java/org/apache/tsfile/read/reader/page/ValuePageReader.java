@@ -584,7 +584,7 @@ public class ValuePageReader {
     return pageHeader.isModified();
   }
 
-  protected boolean isDeleted(long timestamp) {
+  public boolean isDeleted(long timestamp) {
     while (deleteIntervalList != null && deleteCursor < deleteIntervalList.size()) {
       if (deleteIntervalList.get(deleteCursor).contains(timestamp)) {
         return true;
@@ -600,6 +600,14 @@ public class ValuePageReader {
   public void fillIsDeleted(long[] timestamp, boolean[] isDeleted) {
     for (int i = 0, n = timestamp.length; i < n; i++) {
       isDeleted[i] = isDeleted(timestamp[i]);
+    }
+  }
+
+  public void fillIsDeleted(long[] timestamp, boolean[] isDeleted, boolean[] keepCurrentRow) {
+    for (int i = 0, n = timestamp.length; i < n; i++) {
+      if (keepCurrentRow[i]) {
+        isDeleted[i] = isDeleted(timestamp[i]);
+      }
     }
   }
 

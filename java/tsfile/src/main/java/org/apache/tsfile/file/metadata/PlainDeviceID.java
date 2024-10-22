@@ -48,6 +48,23 @@ public class PlainDeviceID implements IDeviceID {
     this.deviceID = deviceID;
   }
 
+  private static final Deserializer DESERIALIZER =
+      new Deserializer() {
+        @Override
+        public IDeviceID deserializeFrom(ByteBuffer byteBuffer) {
+          return deserialize(byteBuffer).convertToStringArrayDeviceId();
+        }
+
+        @Override
+        public IDeviceID deserializeFrom(InputStream inputStream) throws IOException {
+          return deserialize(inputStream).convertToStringArrayDeviceId();
+        }
+      };
+
+  public static Deserializer getDESERIALIZER() {
+    return DESERIALIZER;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -91,6 +108,11 @@ public class PlainDeviceID implements IDeviceID {
   @Override
   public boolean isEmpty() {
     return deviceID.isEmpty();
+  }
+
+  @Override
+  public boolean isTableModel() {
+    return false;
   }
 
   @Override

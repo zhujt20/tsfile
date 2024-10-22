@@ -74,7 +74,7 @@ public class TsBlock {
   }
 
   public TsBlock(Column timeColumn, Column... valueColumns) {
-    this(true, determinePositionCount(valueColumns), timeColumn, valueColumns);
+    this(true, determinePositionCount(timeColumn), timeColumn, valueColumns);
   }
 
   public TsBlock(int positionCount, Column timeColumn, Column... valueColumns) {
@@ -455,9 +455,6 @@ public class TsBlock {
 
     @Override
     public boolean hasNextTimeValuePair() {
-      while (hasNext() && isCurrentValueAllNull()) {
-        next();
-      }
       return hasNext();
     }
 
@@ -498,15 +495,6 @@ public class TsBlock {
 
     public void setRowIndex(int rowIndex) {
       this.rowIndex = rowIndex;
-    }
-
-    private boolean isCurrentValueAllNull() {
-      for (Column valueColumn : valueColumns) {
-        if (!valueColumn.isNull(rowIndex)) {
-          return false;
-        }
-      }
-      return true;
     }
   }
 

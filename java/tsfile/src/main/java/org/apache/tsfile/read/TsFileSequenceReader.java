@@ -29,6 +29,7 @@ import org.apache.tsfile.encoding.decoder.Decoder;
 import org.apache.tsfile.encrypt.EncryptUtils;
 import org.apache.tsfile.encrypt.IDecryptor;
 import org.apache.tsfile.enums.TSDataType;
+import org.apache.tsfile.exception.NotCompatibleTsFileException;
 import org.apache.tsfile.exception.StopReadTsFileByInterruptException;
 import org.apache.tsfile.exception.TsFileRuntimeException;
 import org.apache.tsfile.exception.TsFileStatisticsMistakesException;
@@ -38,6 +39,7 @@ import org.apache.tsfile.file.MetaMarker;
 import org.apache.tsfile.file.header.ChunkGroupHeader;
 import org.apache.tsfile.file.header.ChunkHeader;
 import org.apache.tsfile.file.header.PageHeader;
+import org.apache.tsfile.file.metadata.AbstractAlignedTimeSeriesMetadata;
 import org.apache.tsfile.file.metadata.AlignedChunkMetadata;
 import org.apache.tsfile.file.metadata.AlignedTimeSeriesMetadata;
 import org.apache.tsfile.file.metadata.ChunkGroupMetadata;
@@ -48,6 +50,7 @@ import org.apache.tsfile.file.metadata.IDeviceID;
 import org.apache.tsfile.file.metadata.ITimeSeriesMetadata;
 import org.apache.tsfile.file.metadata.MeasurementMetadataIndexEntry;
 import org.apache.tsfile.file.metadata.MetadataIndexNode;
+import org.apache.tsfile.file.metadata.TableDeviceMetadata;
 import org.apache.tsfile.file.metadata.TimeseriesMetadata;
 import org.apache.tsfile.file.metadata.TsFileMetadata;
 import org.apache.tsfile.file.metadata.enums.CompressionType;
@@ -155,7 +158,9 @@ public class TsFileSequenceReader implements AutoCloseable {
     }
     this.file = file;
     tsFileInput = FSFactoryProducer.getFileInputFactory().getTsFileInput(file);
+
     try {
+      loadFileVersion();
       if (loadMetadataSize) {
         loadMetadataSize();
       }
@@ -219,17 +224,24 @@ public class TsFileSequenceReader implements AutoCloseable {
   }
 
   private void loadFileVersion() throws IOException {
-    tsFileInput.position(TSFileConfig.MAGIC_STRING.getBytes(TSFileConfig.STRING_CHARSET).length);
-    final ByteBuffer buffer = ByteBuffer.allocate(1);
-    tsFileInput.read(buffer);
-    buffer.flip();
-    fileVersion = buffer.get();
+    try {
+      tsFileInput.position(TSFileConfig.MAGIC_STRING.getBytes(TSFileConfig.STRING_CHARSET).length);
+      final ByteBuffer buffer = ByteBuffer.allocate(1);
+      tsFileInput.read(buffer);
+      buffer.flip();
+      fileVersion = buffer.get();
 
-    checkFileVersion();
-    configDeserializer();
+      checkFileVersion();
+      configDeserializer();
+
+      tsFileInput.position(0);
+    } catch (Exception e) {
+      tsFileInput.close();
+      throw new NotCompatibleTsFileException(e);
+    }
   }
 
-  private void configDeserializer() throws IOException {
+  private void configDeserializer() {
     if (fileVersion == TSFileConfig.VERSION_NUMBER_V3) {
       deserializeConfig = CompatibilityUtils.v3DeserializeConfig;
     }
@@ -242,8 +254,6 @@ public class TsFileSequenceReader implements AutoCloseable {
   }
 
   public void loadMetadataSize() throws IOException {
-    loadFileVersion();
-
     ByteBuffer metadataSize = ByteBuffer.allocate(Integer.BYTES);
     if (readTailMagic().equals(TSFileConfig.MAGIC_STRING)) {
       tsFileInput.read(
@@ -1479,7 +1489,8 @@ public class TsFileSequenceReader implements AutoCloseable {
    * @throws IOException io error
    */
   public ChunkGroupHeader readChunkGroupHeader() throws IOException {
-    return ChunkGroupHeader.deserializeFrom(tsFileInput.wrapAsInputStream(), true);
+    return ChunkGroupHeader.deserializeFrom(
+        tsFileInput.wrapAsInputStream(), true, deserializeConfig.versionNumber);
   }
 
   /**
@@ -1492,7 +1503,8 @@ public class TsFileSequenceReader implements AutoCloseable {
    */
   public ChunkGroupHeader readChunkGroupHeader(long position, boolean markerRead)
       throws IOException {
-    return ChunkGroupHeader.deserializeFrom(tsFileInput, position, markerRead);
+    return ChunkGroupHeader.deserializeFrom(
+        tsFileInput, position, markerRead, deserializeConfig.versionNumber);
   }
 
   public void readPlanIndex() throws IOException {
@@ -1865,10 +1877,11 @@ public class TsFileSequenceReader implements AutoCloseable {
     if (fileSize < headerLength) {
       return TsFileCheckStatus.INCOMPATIBLE_FILE;
     }
-    if (!TSFileConfig.MAGIC_STRING.equals(readHeadMagic())
-        || (TSFileConfig.VERSION_NUMBER != readVersionNumber())) {
+    if (!TSFileConfig.MAGIC_STRING.equals(readHeadMagic())) {
       return TsFileCheckStatus.INCOMPATIBLE_FILE;
     }
+    fileVersion = readVersionNumber();
+    checkFileVersion();
 
     tsFileInput.position(headerLength);
     boolean isComplete = isComplete();
@@ -2360,7 +2373,8 @@ public class TsFileSequenceReader implements AutoCloseable {
    *
    * @param device device name
    */
-  public List<AlignedChunkMetadata> getAlignedChunkMetadata(IDeviceID device) throws IOException {
+  public List<AlignedChunkMetadata> getAlignedChunkMetadata(
+      IDeviceID device, boolean ignoreAllNullRows) throws IOException {
     readFileMetadata();
     MetadataIndexNode deviceMetadataIndexNode =
         tsFileMetaData.getTableMetadataIndexNode(device.getTableName());
@@ -2380,7 +2394,7 @@ public class TsFileSequenceReader implements AutoCloseable {
       logger.error(METADATA_INDEX_NODE_DESERIALIZE_ERROR, file);
       throw e;
     }
-    return getAlignedChunkMetadataByMetadataIndexNode(device, metadataIndexNode);
+    return getAlignedChunkMetadataByMetadataIndexNode(device, metadataIndexNode, ignoreAllNullRows);
   }
 
   /**
@@ -2389,9 +2403,11 @@ public class TsFileSequenceReader implements AutoCloseable {
    *
    * @param device device name
    * @param metadataIndexNode the first measurement metadata index node of the device
+   * @param ignoreAllNullRows ignore all null rows
    */
   public List<AlignedChunkMetadata> getAlignedChunkMetadataByMetadataIndexNode(
-      IDeviceID device, MetadataIndexNode metadataIndexNode) throws IOException {
+      IDeviceID device, MetadataIndexNode metadataIndexNode, boolean ignoreAllNullRows)
+      throws IOException {
     TimeseriesMetadata firstTimeseriesMetadata = getTimeColumnMetadata(metadataIndexNode);
     if (firstTimeseriesMetadata == null) {
       throw new IOException("Timeseries of device {" + device + "} are not aligned");
@@ -2442,8 +2458,14 @@ public class TsFileSequenceReader implements AutoCloseable {
       valueTimeseriesMetadataList.add(timeseriesMetadataList.get(i));
     }
 
-    AlignedTimeSeriesMetadata alignedTimeSeriesMetadata =
-        new AlignedTimeSeriesMetadata(timeseriesMetadata, valueTimeseriesMetadataList);
+    AbstractAlignedTimeSeriesMetadata alignedTimeSeriesMetadata;
+    if (ignoreAllNullRows) {
+      alignedTimeSeriesMetadata =
+          new AlignedTimeSeriesMetadata(timeseriesMetadata, valueTimeseriesMetadataList);
+    } else {
+      alignedTimeSeriesMetadata =
+          new TableDeviceMetadata(timeseriesMetadata, valueTimeseriesMetadataList);
+    }
     List<AlignedChunkMetadata> chunkMetadataList = new ArrayList<>();
     for (IChunkMetadata chunkMetadata : readIChunkMetaDataList(alignedTimeSeriesMetadata)) {
       chunkMetadataList.add((AlignedChunkMetadata) chunkMetadata);
@@ -2465,9 +2487,9 @@ public class TsFileSequenceReader implements AutoCloseable {
 
   // This method is only used for TsFile
   public List<IChunkMetadata> readIChunkMetaDataList(ITimeSeriesMetadata timeseriesMetaData) {
-    if (timeseriesMetaData instanceof AlignedTimeSeriesMetadata) {
+    if (timeseriesMetaData instanceof AbstractAlignedTimeSeriesMetadata) {
       return new ArrayList<>(
-          ((AlignedTimeSeriesMetadata) timeseriesMetaData).getChunkMetadataList());
+          ((AbstractAlignedTimeSeriesMetadata) timeseriesMetaData).getChunkMetadataList());
     } else {
       return new ArrayList<>(((TimeseriesMetadata) timeseriesMetaData).getChunkMetadataList());
     }

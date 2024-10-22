@@ -92,7 +92,7 @@ public class SingleDeviceTsBlockReader implements TsBlockReader {
     for (String idColumn : task.getColumnMapping().getIdColumns()) {
       final List<Integer> columnPosInResult = task.getColumnMapping().getColumnPos(idColumn);
       // the first segment in DeviceId is the table name
-      final int columnPosInId = task.getTableSchema().findColumnIndex(idColumn) + 1;
+      final int columnPosInId = task.getTableSchema().findIdColumnOrder(idColumn) + 1;
       idColumnContextMap.put(idColumn, new IdColumnContext(columnPosInResult, columnPosInId));
     }
   }
@@ -161,6 +161,7 @@ public class SingleDeviceTsBlockReader implements TsBlockReader {
 
       try {
         fillMeasurements(minTimeColumns);
+        nextTime = Long.MAX_VALUE;
       } catch (IOException e) {
         LOGGER.error("Cannot fill measurements", e);
         return false;
@@ -390,6 +391,7 @@ public class SingleDeviceTsBlockReader implements TsBlockReader {
             default:
               throw new IllegalArgumentException("Unsupported data type: " + value.getDataType());
           }
+          block.getColumn(pos).setPositionCount(blockRowNum + 1);
         }
       }
     }
