@@ -45,6 +45,8 @@ public interface IDeviceID extends Comparable<IDeviceID>, Accountable, Serializa
 
   boolean isEmpty();
 
+  boolean isTableModel();
+
   /**
    * @return the table name associated with the device. For a path-DeviceId, like "root.a.b.c.d", it
    *     is converted according to a fixed rule, like assuming the first three levels ("root.a.b")
@@ -151,6 +153,7 @@ public interface IDeviceID extends Comparable<IDeviceID>, Accountable, Serializa
     IDeviceID deserializeFrom(InputStream inputStream) throws IOException;
 
     Deserializer DEFAULT_DESERIALIZER = StringArrayDeviceID.getDESERIALIZER();
+    Deserializer DESERIALIZER_V3 = PlainDeviceID.getDESERIALIZER();
   }
 
   interface Factory {

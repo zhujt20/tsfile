@@ -57,6 +57,7 @@ public class Tablet {
 
   private static final int DEFAULT_SIZE = 1024;
   private static final String NOT_SUPPORT_DATATYPE = "Data type %s is not supported.";
+  private static final LocalDate EMPTY_DATE = LocalDate.of(1000, 1, 1);
 
   /** DeviceId if using tree-view interfaces or TableName when using table-view interfaces. */
   private String insertTargetName;
@@ -70,8 +71,8 @@ public class Tablet {
    */
   private List<ColumnType> columnTypes;
 
-  /** Columns in [0, idColumnRange) are all ID columns. */
-  private int idColumnRange;
+  /** Columns in the list are all ID columns. */
+  private List<Integer> idColumnIndexes = new ArrayList<>();
 
   /** MeasurementId->indexOf({@link MeasurementSchema}) */
   private final Map<String, Integer> measurementIndex;
@@ -220,14 +221,14 @@ public class Tablet {
     timestamps[rowIndex] = timestamp;
   }
 
-  public void addValue(String measurementId, int rowIndex, Object value) {
+  public void addValue(final String measurementId, final int rowIndex, final Object value) {
     int indexOfSchema = measurementIndex.get(measurementId);
     IMeasurementSchema measurementSchema = schemas.get(indexOfSchema);
     addValueOfDataType(measurementSchema.getType(), rowIndex, indexOfSchema, value);
   }
 
   private void addValueOfDataType(
-      TSDataType dataType, int rowIndex, int indexOfSchema, Object value) {
+      final TSDataType dataType, final int rowIndex, final int indexOfSchema, final Object value) {
 
     if (value == null) {
       // Init the bitMap to mark null value
@@ -245,9 +246,9 @@ public class Tablet {
       case STRING:
       case BLOB:
         {
-          Binary[] sensor = (Binary[]) values[indexOfSchema];
+          final Binary[] sensor = (Binary[]) values[indexOfSchema];
           if (value instanceof Binary) {
-            sensor[rowIndex] = value != null ? (Binary) value : Binary.EMPTY_VALUE;
+            sensor[rowIndex] = (Binary) value;
           } else {
             sensor[rowIndex] =
                 value != null
@@ -258,38 +259,38 @@ public class Tablet {
         }
       case FLOAT:
         {
-          float[] sensor = (float[]) values[indexOfSchema];
+          final float[] sensor = (float[]) values[indexOfSchema];
           sensor[rowIndex] = value != null ? (float) value : Float.MIN_VALUE;
           break;
         }
       case INT32:
         {
-          int[] sensor = (int[]) values[indexOfSchema];
+          final int[] sensor = (int[]) values[indexOfSchema];
           sensor[rowIndex] = value != null ? (int) value : Integer.MIN_VALUE;
           break;
         }
       case DATE:
         {
-          LocalDate[] sensor = (LocalDate[]) values[indexOfSchema];
-          sensor[rowIndex] = (LocalDate) value;
+          final LocalDate[] sensor = (LocalDate[]) values[indexOfSchema];
+          sensor[rowIndex] = value != null ? (LocalDate) value : EMPTY_DATE;
           break;
         }
       case INT64:
       case TIMESTAMP:
         {
-          long[] sensor = (long[]) values[indexOfSchema];
+          final long[] sensor = (long[]) values[indexOfSchema];
           sensor[rowIndex] = value != null ? (long) value : Long.MIN_VALUE;
           break;
         }
       case DOUBLE:
         {
-          double[] sensor = (double[]) values[indexOfSchema];
+          final double[] sensor = (double[]) values[indexOfSchema];
           sensor[rowIndex] = value != null ? (double) value : Double.MIN_VALUE;
           break;
         }
       case BOOLEAN:
         {
-          boolean[] sensor = (boolean[]) values[indexOfSchema];
+          final boolean[] sensor = (boolean[]) values[indexOfSchema];
           sensor[rowIndex] = value != null && (boolean) value;
           break;
         }
@@ -370,64 +371,6 @@ public class Tablet {
         throw new UnSupportedDataTypeException(String.format(NOT_SUPPORT_DATATYPE, dataType));
     }
     return valueColumn;
-  }
-
-  public int getTimeBytesSize() {
-    return rowSize * 8;
-  }
-
-  /**
-   * @return Total bytes of values
-   */
-  public int getTotalValueOccupation() {
-    int valueOccupation = 0;
-    int columnIndex = 0;
-    for (IMeasurementSchema schema : schemas) {
-      valueOccupation += calOccupationOfOneColumn(schema.getType(), columnIndex);
-      columnIndex++;
-    }
-    // Add bitmap size if the tablet has bitMaps
-    if (bitMaps != null) {
-      for (BitMap bitMap : bitMaps) {
-        // Marker byte
-        valueOccupation++;
-        if (bitMap != null && !bitMap.isAllUnmarked()) {
-          valueOccupation += rowSize / Byte.SIZE + 1;
-        }
-      }
-    }
-    return valueOccupation;
-  }
-
-  private int calOccupationOfOneColumn(TSDataType dataType, int columnIndex) {
-    int valueOccupation = 0;
-    switch (dataType) {
-      case BOOLEAN:
-        valueOccupation += rowSize;
-        break;
-      case INT32:
-      case FLOAT:
-      case DATE:
-        valueOccupation += rowSize * 4;
-        break;
-      case INT64:
-      case DOUBLE:
-      case TIMESTAMP:
-        valueOccupation += rowSize * 8;
-        break;
-      case TEXT:
-      case BLOB:
-      case STRING:
-        valueOccupation += rowSize * 4;
-        Binary[] binaries = (Binary[]) values[columnIndex];
-        for (int rowIndex = 0; rowIndex < rowSize; rowIndex++) {
-          valueOccupation += binaries[rowIndex].getLength();
-        }
-        break;
-      default:
-        throw new UnSupportedDataTypeException(String.format(NOT_SUPPORT_DATATYPE, dataType));
-    }
-    return valueOccupation;
   }
 
   /** Serialize {@link Tablet} */
@@ -919,7 +862,7 @@ public class Tablet {
   }
 
   public boolean isNull(int i, int j) {
-    return bitMaps != null && bitMaps[j] != null && !bitMaps[j].isMarked(i);
+    return bitMaps != null && bitMaps[j] != null && bitMaps[j].isMarked(i);
   }
 
   /**
@@ -945,7 +888,10 @@ public class Tablet {
       case BOOLEAN:
         return ((boolean[]) values[j])[i];
       case INT64:
+      case TIMESTAMP:
         return ((long[]) values[j])[i];
+      case DATE:
+        return ((LocalDate[]) values[j])[i];
       default:
         throw new IllegalArgumentException("Unsupported type: " + schemas.get(j).getType());
     }
@@ -958,27 +904,23 @@ public class Tablet {
    * @return the IDeviceID of the i-th row.
    */
   public IDeviceID getDeviceID(int i) {
-    String[] idArray = new String[idColumnRange + 1];
+    String[] idArray = new String[idColumnIndexes.size() + 1];
     idArray[0] = insertTargetName;
-    for (int j = 0; j < idColumnRange; j++) {
-      final Object value = getValue(i, j);
+    for (int j = 0; j < idColumnIndexes.size(); j++) {
+      final Object value = getValue(i, idColumnIndexes.get(j));
       idArray[j + 1] = value != null ? value.toString() : null;
     }
     return new StringArrayDeviceID(idArray);
   }
 
-  public int getIdColumnRange() {
-    return idColumnRange;
-  }
-
   public void setColumnTypes(List<ColumnType> columnTypes) {
     this.columnTypes = columnTypes;
-    idColumnRange = 0;
-    for (ColumnType columnType : columnTypes) {
-      if (columnType.equals(ColumnType.MEASUREMENT)) {
-        break;
+    idColumnIndexes.clear();
+    for (int i = 0; i < columnTypes.size(); i++) {
+      ColumnType columnType = columnTypes.get(i);
+      if (columnType.equals(ColumnType.ID)) {
+        idColumnIndexes.add(i);
       }
-      idColumnRange++;
     }
   }
 

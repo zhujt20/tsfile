@@ -60,7 +60,6 @@ public class RestorableTsFileIOWriter extends TsFileIOWriter {
 
   private static final Logger logger = LoggerFactory.getLogger("FileMonitor");
   private long truncatedSize = -1;
-  private Schema schema = new Schema();
 
   private int lastFlushedChunkGroupIndex = 0;
 
@@ -107,29 +106,35 @@ public class RestorableTsFileIOWriter extends TsFileIOWriter {
       return;
     }
 
-    if (file.exists()) {
-      try (TsFileSequenceReader reader = new TsFileSequenceReader(file.getAbsolutePath(), false)) {
-        schema.setEnabledUpdateSchema(false);
-        truncatedSize = reader.selfCheck(schema, chunkGroupMetadataList, true);
-        minPlanIndex = reader.getMinPlanIndex();
-        maxPlanIndex = reader.getMaxPlanIndex();
-        if (truncatedSize == TsFileCheckStatus.COMPLETE_FILE) {
-          crashed = false;
-          canWrite = false;
-          out.close();
-        } else if (truncatedSize == TsFileCheckStatus.INCOMPATIBLE_FILE) {
-          out.close();
-          throw new NotCompatibleTsFileException(
-              String.format("%s is not in TsFile format.", file.getAbsolutePath()));
-        } else {
-          crashed = true;
-          canWrite = true;
-          // remove broken data
-          if (truncate) {
-            out.truncate(truncatedSize);
+    try {
+      if (file.exists()) {
+        try (TsFileSequenceReader reader =
+            new TsFileSequenceReader(file.getAbsolutePath(), false)) {
+          schema.setEnabledUpdateSchema(false);
+          truncatedSize = reader.selfCheck(schema, chunkGroupMetadataList, true);
+          minPlanIndex = reader.getMinPlanIndex();
+          maxPlanIndex = reader.getMaxPlanIndex();
+          if (truncatedSize == TsFileCheckStatus.COMPLETE_FILE) {
+            crashed = false;
+            canWrite = false;
+            out.close();
+          } else if (truncatedSize == TsFileCheckStatus.INCOMPATIBLE_FILE) {
+            out.close();
+            throw new NotCompatibleTsFileException(
+                String.format("%s is not in TsFile format.", file.getAbsolutePath()));
+          } else {
+            crashed = true;
+            canWrite = true;
+            // remove broken data
+            if (truncate) {
+              out.truncate(truncatedSize);
+            }
           }
         }
       }
+    } catch (Exception e) {
+      out.close();
+      throw e;
     }
   }
 
