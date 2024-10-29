@@ -18,6 +18,7 @@
  */
 package org.apache.tsfile.encrypt;
 
+import org.apache.tsfile.common.conf.TSFileConfig;
 import org.apache.tsfile.common.conf.TSFileDescriptor;
 import org.apache.tsfile.exception.encrypt.EncryptException;
 import org.apache.tsfile.file.metadata.enums.EncryptionType;
@@ -88,6 +89,30 @@ public class EncryptUtils {
           IEncryptor.getEncryptor(
                   TSFileDescriptor.getInstance().getConfig().getEncryptType(),
                   TSFileDescriptor.getInstance().getConfig().getEncryptKey().getBytes())
+              .encrypt(data_key);
+      StringBuilder valueStr = new StringBuilder();
+
+      for (byte b : data_key) {
+        valueStr.append(b).append(",");
+      }
+
+      valueStr.deleteCharAt(valueStr.length() - 1);
+      String str = valueStr.toString();
+
+      return str;
+    } catch (Exception e) {
+      throw new EncryptException("md5 function not found while using md5 to generate data key");
+    }
+  }
+
+  public static String getNormalKeyStr(TSFileConfig config) {
+    try {
+      MessageDigest md = MessageDigest.getInstance("MD5");
+      md.update("IoTDB is the best".getBytes());
+      md.update(config.getEncryptKey().getBytes());
+      byte[] data_key = md.digest();
+      data_key =
+          IEncryptor.getEncryptor(config.getEncryptType(), config.getEncryptKey().getBytes())
               .encrypt(data_key);
       StringBuilder valueStr = new StringBuilder();
 
