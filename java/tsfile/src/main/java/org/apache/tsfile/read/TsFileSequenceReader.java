@@ -117,6 +117,7 @@ public class TsFileSequenceReader implements AutoCloseable {
   protected TsFileInput tsFileInput;
   protected long fileMetadataPos;
   protected int fileMetadataSize;
+  protected boolean loadmetadata = true;
   private ByteBuffer markerBuffer = ByteBuffer.allocate(Byte.BYTES);
 
   @SuppressWarnings("squid:S3077")
@@ -199,6 +200,7 @@ public class TsFileSequenceReader implements AutoCloseable {
   public TsFileSequenceReader(TsFileInput input, boolean loadMetadataSize) throws IOException {
     this.tsFileInput = input;
     this.file = input.getFilePath();
+    this.loadmetadata = loadMetadataSize;
     try {
       if (loadMetadataSize) { // NOTE no autoRepair here
         loadMetadataSize();
@@ -370,21 +372,19 @@ public class TsFileSequenceReader implements AutoCloseable {
   }
 
   /**
-   * Retrieves the decryptor for the TsFile. This method reads the file metadata to obtain the
-   * decryptor information. If an error occurs while reading the metadata, it logs the error and
-   * attempts to retrieve the decryptor based on the configuration settings.
+   * Retrieves the encrypt parameter for the TsFile. This method reads the file metadata to obtain
+   * the decryptor information. If an error occurs while reading the metadata, it logs the error and
+   * attempts to retrieve the encrypt parameter based on the configuration settings.
    *
-   * @return the decryptor for the TsFile
+   * @return the encrypt parameter for the TsFile
    * @throws IOException if an I/O error occurs while reading the file metadata
    */
   public EncryptParameter getEncryptParam() throws IOException {
-    try {
+    if (fileMetadataSize != 0) {
       readFileMetadata();
-    } catch (Exception e) {
-      logger.error("Something error happened while reading file metadata of file {}", file, e);
-      return EncryptUtils.encryptParam;
+      return tsFileMetaData.getEncryptParam();
     }
-    return tsFileMetaData.getEncryptParam();
+    return EncryptUtils.encryptParam;
   }
 
   /**

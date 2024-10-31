@@ -163,8 +163,8 @@ public class TsFileMetadata {
   }
 
   public EncryptParameter getEncryptParam() {
-    if (dataEncryptKey == null) {
-      return new EncryptParameter("org.apache.tsfile.encrypt.UNENCRYPTED", null);
+    if (encryptType == null && dataEncryptKey == null) {
+      return EncryptUtils.encryptParam;
     }
     return new EncryptParameter(encryptType, dataEncryptKey);
   }
