@@ -20,6 +20,8 @@ package org.apache.tsfile.write;
 
 import org.apache.tsfile.enums.TSDataType;
 import org.apache.tsfile.exception.write.WriteProcessException;
+import org.apache.tsfile.file.metadata.StringArrayDeviceID;
+import org.apache.tsfile.file.metadata.TableSchema;
 import org.apache.tsfile.file.metadata.enums.CompressionType;
 import org.apache.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.tsfile.fileSystem.FSFactoryProducer;
@@ -59,6 +61,63 @@ public class WriteCompressTest {
       } catch (IOException | WriteProcessException e) {
       }
     }
+  }
+
+  private void writeTest(CompressionType compressionType)
+      throws IOException, WriteProcessException {
+    String path = compressionType.toString() + "tsfile";
+    File f = FSFactoryProducer.getFSFactory().getFile(path);
+    if (f.exists()) {
+      Files.delete(f.toPath());
+    }
+    int deviceNum = 50;
+    int measurementNum = 50;
+    try (TsFileWriter tsFileWriter = new TsFileWriter(f)) {
+      List<IMeasurementSchema> measurementSchemas = new ArrayList<>();
+      for (int i = 0; i < measurementNum; i++) {
+        measurementSchemas.add(
+            new MeasurementSchema(
+                "sensor_" + i, TSDataType.INT32, TSEncoding.TS_2DIFF, compressionType));
+      }
+      String device_name = "device";
+      for (int i = 0; i < deviceNum; i++) {
+        String deviceId = device_name + i;
+        tsFileWriter.registerTimeseries(new Path(deviceId), measurementSchemas);
+      }
+      long start = System.currentTimeMillis();
+      int max_rows = 1000000;
+      int tablet_size = 100000;
+      int cur = 0;
+      System.out.println("start");
+      for (; cur < max_rows; ) {
+        if (cur + tablet_size > max_rows) {
+          tablet_size = max_rows - cur;
+        }
+        for (int i = 0; i < deviceNum; i++) {
+          String deviceId = device_name + i;
+          Tablet tablet = new Tablet(deviceId, measurementSchemas, tablet_size);
+          tablet.initBitMaps();
+          for (int row = 0; row < tablet_size; row++) {
+            tablet.addTimestamp(row, 12345 + cur + row);
+          }
+          for (int j = 0; j < measurementNum; j++) {
+            for (int row = 0; row < tablet_size; row++) {
+              tablet.addValue(measurementSchemas.get(j).getMeasurementName(), row, cur + row);
+            }
+          }
+          //                    System.out.println("tablet init finsh");
+          tsFileWriter.writeTree(tablet);
+          tsFileWriter.flush();
+        }
+        System.out.println("cur write:" + cur);
+        cur += tablet_size;
+      }
+      long end = System.currentTimeMillis();
+      System.out.println("write cost:" + (end - start) + "ms");
+    }
+    long fileSize = Files.size(f.toPath());
+    System.out.println("file size:" + fileSize);
+    System.out.print("write finish" + compressionType.toString());
   }
 
   @Test
@@ -104,7 +163,6 @@ public class WriteCompressTest {
     for (CompressionType type : CompressionType.values()) {
       try {
         readAlignedTest(type);
-        break;
       } catch (IOException e) {
       }
     }
@@ -114,24 +172,24 @@ public class WriteCompressTest {
     String TSFILE_PATH = type.toString() + "aligned" + "tsfile";
     TsFileSequenceReader fileReader = new TsFileSequenceReader(TSFILE_PATH);
     TsFileReader reader = new TsFileReader(fileReader);
-    List<Path> pathList = new ArrayList<>();
-    int num = 0;
+    int num = 50;
+    long count = 0;
+    long duration = 0;
     for (int j = 0; j < 50; j++) {
+      List<Path> pathList = new ArrayList<>();
       for (int i = 0; i < 50; i++) {
         pathList.add(new Path(DEVICE + j, SENSOR + i, true));
-        num++;
       }
+      QueryExpression queryExpression = QueryExpression.create(pathList, null);
+      long startTime = System.currentTimeMillis();
+      QueryDataSet dataSet = reader.query(queryExpression);
+      while (dataSet.hasNext()) {
+        RowRecord r = dataSet.next();
+        count++;
+      }
+      long endTime = System.currentTimeMillis();
+      duration += endTime - startTime;
     }
-    QueryExpression queryExpression = QueryExpression.create(pathList, null);
-    long startTime = System.currentTimeMillis();
-    QueryDataSet dataSet = reader.query(queryExpression);
-    long count = 0;
-    while (dataSet.hasNext()) {
-      RowRecord r = dataSet.next();
-      count++;
-    }
-    long endTime = System.currentTimeMillis();
-    long duration = endTime - startTime;
     System.out.println("query all cost: " + (duration / 1000.0) + "s");
     System.out.println("query get points: " + formater.format(count * num) + "points");
     System.out.println(
@@ -143,7 +201,6 @@ public class WriteCompressTest {
     for (CompressionType type : CompressionType.values()) {
       try {
         writeAlignedTest(type);
-        break;
       } catch (IOException | WriteProcessException e) {
       }
     }
@@ -206,9 +263,18 @@ public class WriteCompressTest {
     System.out.print("write finish" + compressionType.toString());
   }
 
-  private void writeTest(CompressionType compressionType)
-      throws IOException, WriteProcessException {
-    String path = compressionType.toString() + "tsfile";
+  @Test
+  public void testTableWrite() throws IOException {
+    for (CompressionType type : CompressionType.values()) {
+      try {
+        writeTableTest(type);
+      } catch (IOException e) {
+      }
+    }
+  }
+
+  public void writeTableTest(CompressionType compressionType) throws IOException {
+    String path = compressionType.toString() + "table" + "tsfile";
     File f = FSFactoryProducer.getFSFactory().getFile(path);
     if (f.exists()) {
       Files.delete(f.toPath());
@@ -217,16 +283,18 @@ public class WriteCompressTest {
     int measurementNum = 50;
     try (TsFileWriter tsFileWriter = new TsFileWriter(f)) {
       List<IMeasurementSchema> measurementSchemas = new ArrayList<>();
+      List<Tablet.ColumnCategory> columnCategories = new ArrayList<>();
+      measurementSchemas.add(
+          new MeasurementSchema("device", TSDataType.INT32, TSEncoding.TS_2DIFF, compressionType));
+      columnCategories.add(Tablet.ColumnCategory.valueOf("TAG"));
       for (int i = 0; i < measurementNum; i++) {
         measurementSchemas.add(
             new MeasurementSchema(
                 "sensor_" + i, TSDataType.INT32, TSEncoding.TS_2DIFF, compressionType));
+        columnCategories.add(Tablet.ColumnCategory.valueOf("FIELD"));
       }
-      String device_name = "device";
-      for (int i = 0; i < deviceNum; i++) {
-        String deviceId = device_name + i;
-        tsFileWriter.registerTimeseries(new Path(deviceId), measurementSchemas);
-      }
+      TableSchema tableSchema = new TableSchema("root", measurementSchemas, columnCategories);
+      tsFileWriter.registerTableSchema(tableSchema);
       long start = System.currentTimeMillis();
       int max_rows = 1000000;
       int tablet_size = 100000;
@@ -237,19 +305,20 @@ public class WriteCompressTest {
           tablet_size = max_rows - cur;
         }
         for (int i = 0; i < deviceNum; i++) {
-          String deviceId = device_name + i;
-          Tablet tablet = new Tablet(deviceId, measurementSchemas, tablet_size);
+          String device_name = "device";
+          Tablet tablet = new Tablet("root", measurementSchemas, tablet_size);
           tablet.initBitMaps();
           for (int row = 0; row < tablet_size; row++) {
             tablet.addTimestamp(row, 12345 + cur + row);
+            tablet.addValue(device_name, row, i);
           }
-          for (int j = 0; j < measurementNum; j++) {
+
+          for (int j = 1; j < measurementNum + 1; j++) {
             for (int row = 0; row < tablet_size; row++) {
               tablet.addValue(measurementSchemas.get(j).getMeasurementName(), row, cur + row);
             }
           }
-          //                    System.out.println("tablet init finsh");
-          tsFileWriter.writeTree(tablet);
+          tsFileWriter.writeTable(tablet);
           tsFileWriter.flush();
         }
         System.out.println("cur write:" + cur);
@@ -257,10 +326,53 @@ public class WriteCompressTest {
       }
       long end = System.currentTimeMillis();
       System.out.println("write cost:" + (end - start) + "ms");
+    } catch (WriteProcessException e) {
+      throw new RuntimeException(e);
     }
     long fileSize = Files.size(f.toPath());
     System.out.println("file size:" + fileSize);
     System.out.print("write finish" + compressionType.toString());
+  }
+
+  @Test
+  public void testTableRead() throws IOException {
+    for (CompressionType type : CompressionType.values()) {
+      try {
+        readTableTest(type);
+      } catch (IOException e) {
+      }
+    }
+  }
+
+  public void readTableTest(CompressionType type) throws IOException {
+    String TSFILE_PATH = type.toString() + "table" + "tsfile";
+    TsFileSequenceReader fileReader = new TsFileSequenceReader(TSFILE_PATH);
+    TsFileReader reader = new TsFileReader(fileReader);
+    int num = 50;
+    long count = 0;
+    long duration = 0;
+    for (int j = 0; j < 50; j++) {
+      List<Path> pathList = new ArrayList<>();
+      for (int i = 0; i < 50; i++) {
+        String device = ((Object) j).toString();
+        StringArrayDeviceID deviceId = new StringArrayDeviceID(new String[] {"root", device});
+        Path path = new Path(deviceId, SENSOR + i, true);
+        pathList.add(path);
+      }
+      QueryExpression queryExpression = QueryExpression.create(pathList, null);
+      long startTime = System.currentTimeMillis();
+      QueryDataSet dataSet = reader.query(queryExpression);
+      while (dataSet.hasNext()) {
+        RowRecord r = dataSet.next();
+        count++;
+      }
+      long endTime = System.currentTimeMillis();
+      duration += endTime - startTime;
+    }
+    System.out.println("query all cost: " + (duration / 1000.0) + "s");
+    System.out.println("query get points: " + formater.format(count * num) + "points");
+    System.out.println(
+        "query speed : " + formater.format(count * num / (duration / 1000.0)) + "points/s");
   }
 
   @Test
